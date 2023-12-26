@@ -66,4 +66,16 @@ class ContactDatabase {
     Database db = await instance.database;
     return await db.delete('contacts', where: 'id = ?', whereArgs: [id]);
   }
+
+  Future<List<Contact>> searchContacts(String query) async {
+    Database db = await instance.database;
+    List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT * FROM contacts
+      WHERE name LIKE ? OR phoneNumber LIKE ?
+    ''', ['%$query%', '%$query%']);
+
+    return List.generate(maps.length, (i) {
+      return Contact.fromMap(maps[i]);
+    });
+  }
 }
