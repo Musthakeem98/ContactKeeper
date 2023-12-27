@@ -1,7 +1,16 @@
-# FlutterContactKeeper
+# contacts_buddy
 
 A new Flutter project.
 
-## Description
+## Getting Started
 
-FlutterContactKeeper is a mobile app developed with Flutter, designed for effortless contact management. Organize, search, and synchronize your contacts seamlessly. Prioritizing user privacy, it offers categorization, search, and secure data backup. Enjoy a consistent experience on both iOS and Android platforms, making contact management easy and efficient.
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.

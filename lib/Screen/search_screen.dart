@@ -1,7 +1,7 @@
 // lib/screens/search_screen.dart
 
+import 'package:contacts_buddy/Screen/update_contact_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:to_do_app/Screen/update_contact_screen.dart';
 import '../Models/contact.dart';
 import 'contact_list_screen.dart';
 

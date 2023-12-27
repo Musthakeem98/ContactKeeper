@@ -5,7 +5,6 @@ import '../Models/contact.dart';
 import '../utils/contact_database.dart';
 import 'add_contact_screen.dart';
 import 'update_contact_screen.dart';
-import 'search_screen.dart';
 
 class ContactListScreen extends StatefulWidget {
   @override
@@ -14,6 +13,10 @@ class ContactListScreen extends StatefulWidget {
 
 class _ContactListScreenState extends State<ContactListScreen> {
   List<Contact> contacts = [];
+  List<Contact> filteredContacts = [];
+
+  final TextEditingController _searchController = TextEditingController();
+  bool isSearching = false;
 
   @override
   void initState() {
@@ -23,27 +26,15 @@ class _ContactListScreenState extends State<ContactListScreen> {
 
   Future<void> _loadContacts() async {
     contacts = await ContactDatabase.instance.getAllContacts();
-    setState(() {});
+    setState(() {
+      filteredContacts = contacts;
+    });
   }
 
-  void _filterContacts(String query) {
-    List<Contact> filteredResults = contacts
-        .where((contact) =>
-    contact.name.toLowerCase().contains(query.toLowerCase()) ||
-        contact.phoneNumber.contains(query))
-        .toList();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SearchScreen(originalContacts: contacts, searchResults: filteredResults),
-      ),
-    );
-  }
-
-  Future<void> _updateContact(Contact contact) async {
+  void _updateContact(Contact contact) async {
     await ContactDatabase.instance.update(contact);
     _loadContacts();
+    _showSnackBar('Contact updated successfully');
   }
 
   Future<void> _deleteContactDialog(BuildContext context, Contact contact) async {
@@ -65,6 +56,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
                 await ContactDatabase.instance.delete(contact.id);
                 Navigator.of(context).pop();
                 _loadContacts();
+                _showSnackBar('Contact deleted successfully');
               },
               child: Text('Delete'),
             ),
@@ -92,8 +84,34 @@ class _ContactListScreenState extends State<ContactListScreen> {
     ).then((value) {
       if (value == true) {
         _loadContacts();
+        _showSnackBar('Contact added successfully');
       }
     });
+  }
+
+  void _searchContacts(String query) {
+    setState(() {
+      filteredContacts = contacts
+          .where((contact) =>
+      contact.name.toLowerCase().contains(query.toLowerCase()) ||
+          contact.phoneNumber.contains(query))
+          .toList();
+    });
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      isSearching = false;
+      _loadContacts();
+    });
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      duration: Duration(seconds: 2),
+    ));
   }
 
   @override
@@ -105,86 +123,117 @@ class _ContactListScreenState extends State<ContactListScreen> {
           IconButton(
             icon: Icon(Icons.search),
             onPressed: () {
-              showSearch(
-                context: context,
-                delegate: ContactSearchDelegate(contacts),
-              );
+              setState(() {
+                isSearching = !isSearching;
+                if (!isSearching) {
+                  _loadContacts();
+                }
+              });
             },
           ),
         ],
       ),
-      body: Container(
-        color: Colors.blueGrey[50],
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: constraints.maxHeight < MediaQuery.of(context).size.height
-                  ? AlwaysScrollableScrollPhysics()
-                  : NeverScrollableScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: contacts.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      elevation: 3.0,
-                      margin: EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.all(16.0),
-                        leading: Icon(Icons.person),
-                        title: Text(
-                          contacts[index].name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.0,
-                            decoration: contacts[index].isFavorite
-                                ? TextDecoration.underline
-                                : null,
-                          ),
-                        ),
-                        subtitle: Text(contacts[index].phoneNumber),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.edit),
-                              onPressed: () {
-                                _navigateToUpdateScreen(context, contacts[index]);
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.star),
-                              color: contacts[index].isFavorite
-                                  ? Colors.yellow
-                                  : Colors.grey,
-                              onPressed: () {
-                                setState(() {
-                                  contacts[index].isFavorite =
-                                  !contacts[index].isFavorite;
-                                });
-                                _updateContact(contacts[index]);
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                _deleteContactDialog(context, contacts[index]);
-                              },
-                            ),
-                          ],
+      body: Column(
+        children: [
+          if (isSearching)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _searchContacts,
+                      decoration: InputDecoration(
+                        hintText: 'Search...',
+                        hintStyle: TextStyle(color: Colors.black54),
+                        border: OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: _clearSearch,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          Expanded(
+            child: Container(
+              color: Colors.blueGrey[50],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: constraints.maxHeight < MediaQuery.of(context).size.height
+                        ? AlwaysScrollableScrollPhysics()
+                        : NeverScrollableScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: filteredContacts.length,
+                        itemBuilder: (context, index) {
+                          return Card(
+                            elevation: 3.0,
+                            margin: EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.all(16.0),
+                              leading: Icon(Icons.person),
+                              title: Text(
+                                filteredContacts[index].name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16.0,
+                                  decoration: filteredContacts[index].isFavorite
+                                      ? TextDecoration.underline
+                                      : null,
+                                ),
+                              ),
+                              subtitle: Text(filteredContacts[index].phoneNumber),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit),
+                                    onPressed: () {
+                                      _navigateToUpdateScreen(context, filteredContacts[index]);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.star),
+                                    color: filteredContacts[index].isFavorite
+                                        ? Colors.yellow
+                                        : Colors.grey,
+                                    onPressed: () {
+                                      setState(() {
+                                        filteredContacts[index].isFavorite =
+                                        !filteredContacts[index].isFavorite;
+                                      });
+                                      _updateContact(filteredContacts[index]);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete),
+                                    onPressed: () {
+                                      _deleteContactDialog(context, filteredContacts[index]);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -192,71 +241,6 @@ class _ContactListScreenState extends State<ContactListScreen> {
         },
         child: Icon(Icons.add),
       ),
-    );
-  }
-}
-
-class ContactSearchDelegate extends SearchDelegate {
-  final List<Contact> contacts;
-
-  ContactSearchDelegate(this.contacts);
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, null);
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return _buildSearchResults();
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return _buildSearchResults();
-  }
-
-  Widget _buildSearchResults() {
-    List<Contact> filteredResults = contacts
-        .where((contact) =>
-    contact.name.toLowerCase().contains(query.toLowerCase()) ||
-        contact.phoneNumber.contains(query))
-        .toList();
-
-    return ListView.builder(
-      itemCount: filteredResults.length,
-      itemBuilder: (context, index) {
-        final contact = filteredResults[index];
-        return ListTile(
-          title: Text(contact.name),
-          subtitle: Text(contact.phoneNumber),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => UpdateContactScreen(contact: contact),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
