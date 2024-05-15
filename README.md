@@ -2,6 +2,10 @@
 
 A new Flutter project.
 
+## Screen shot of UI
+
+![Screen](Readme_Img/Screenshot.png "Screen")
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
